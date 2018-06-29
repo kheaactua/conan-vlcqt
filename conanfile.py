@@ -35,6 +35,7 @@ class VlcqtConan(ConanFile):
         # Import from helpers/x@ntc/stable
         from platform_helpers import adjustPath
 
+        env = {}
         cmake = CMake(self)
 
         cmake.definitions['STATIC'] = 'FALSE' if self.options.shared else 'TRUE'
@@ -43,6 +44,9 @@ class VlcqtConan(ConanFile):
         for p in qt_deps:
             cmake.definitions[f'Qt5{p}_DIR:PATH'] = adjustPath(os.path.join(self.deps_cpp_info['qt'].rootpath, 'lib', 'cmake', f'Qt5{p}'))
         cmake.definitions['QT_QMAKE_EXECUTABLE:PATH'] = adjustPath(os.path.join(self.deps_cpp_info['qt'].rootpath, 'bin', 'qmake'))
+        if 'Windows' == self.settings.os:
+            env['PATH'] = os.environ.get('PATH', '').split(';')
+            env['PATH'].extend([adjustPath(os.path.join(self.deps_cpp_info['qt'].rootpath, p)) for p in ['bin']])
 
         if 'vlc' in self.deps_cpp_info.deps:
             def findLibInList(base, libs, name):
@@ -67,13 +71,20 @@ class VlcqtConan(ConanFile):
             cmake.definitions['LIBVLC_INCLUDE_DIR:PATH'] = adjustPath(os.path.join(self.deps_cpp_info['vlc'].rootpath, self.deps_cpp_info['vlc'].includedirs[0]))
             cmake.definitions['LIBVLC_BIN_DIR:PATH']     = adjustPath(os.path.join(self.deps_cpp_info['vlc'].rootpath, self.deps_cpp_info['vlc'].bindirs[0]))
 
+        if len(env.keys()):
+            s = '\nAdditional Environment:\n'
+            for k,v in env.items():
+                s += ' - %s=%s\n'%(k, v)
+            self.output.info(s)
         s = '\nCMake Definitions:\n'
         for k,v in cmake.definitions.items():
             s += ' - %s=%s\n'%(k, v)
         self.output.info(s)
 
         cmake.configure()
-        cmake.build()
+
+        with tools.environment_append(env):
+            cmake.build()
 
     def package(self):
         cmake = CMake(self)
