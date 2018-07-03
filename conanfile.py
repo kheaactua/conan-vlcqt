@@ -16,6 +16,7 @@ class VlcqtConan(ConanFile):
     options         = {'shared': [True, False]}
     default_options = 'shared= False'
     generators      = 'cmake'
+    exports         = '*.patch'
 
     requires        = (
         'helpers/[>=0.3]@ntc/stable',
@@ -30,6 +31,9 @@ class VlcqtConan(ConanFile):
     def source(self):
         self.run('git clone https://github.com/vlc-qt/vlc-qt.git .')
         self.run('git checkout %s'%self.version)
+
+        # Fix the issue where it ignores and then destroys LIBVLC_BIN_DIR
+        tools.patch(patch_file='cache.patch')
 
         if 'Windows' == self.settings.os:
             # Issue linking to VlcQmlPlayer.  See https://github.com/vlc-qt/vlc-qt/issues/173

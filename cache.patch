@@ -1,0 +1,18 @@
+diff --git a/config/Dependencies.cmake b/config/Dependencies.cmake
+index 0bb6823..713669e 100644
+--- a/config/Dependencies.cmake
++++ b/config/Dependencies.cmake
+@@ -60,10 +60,11 @@ IF(NOT MOBILE)
+ ENDIF()
+ IF(MINGW OR MSVC)
+     STRING(REGEX REPLACE "\\\\" "/" LIBVLC_INCLUDE_DIR "${LIBVLC_INCLUDE_DIR}")
+-    STRING(REGEX REPLACE "sdk/include" "" LIBVLC_BIN_DIR "${LIBVLC_INCLUDE_DIR}")
++    STRING(REPLACE "sdk/include" "" LIBVLC_BIN_DIRDEFAULT "${LIBVLC_INCLUDE_DIR}")
+ ELSE()
+-    STRING(REGEX REPLACE "include" "" LIBVLC_BIN_DIR "${LIBVLC_INCLUDE_DIR}")
++    STRING(REPLACE "include" "" LIBVLC_BIN_DIR_DEFAULT "${LIBVLC_INCLUDE_DIR}")
+ ENDIF()
++set(LIBVLC_BIN_DIR ${LIBVLC_BIN_DIR_DEFAULT} CACHE PATH "Path to VLC shared objects")
+ SET(LIBVLC_PLUGINS_DIR "${LIBVLC_BIN_DIR}/plugins")
+ SET(LIBVLC_LIB_DIR "${LIBVLC_BIN_DIR}/lib")
+ 
