@@ -79,6 +79,13 @@ class VlcqtConan(ConanFile):
             cmake.definitions['LIBVLC_INCLUDE_DIR:PATH'] = adjustPath(os.path.join(self.deps_cpp_info['vlc'].rootpath, self.deps_cpp_info['vlc'].includedirs[0]))
             cmake.definitions['LIBVLC_BIN_DIR:PATH']     = adjustPath(os.path.join(self.deps_cpp_info['vlc'].rootpath, self.deps_cpp_info['vlc'].bindirs[0]))
 
+        if 'Windows' == self.settings.os and 'Visual Studio' == self.settings.compiler:
+            # The creator of VLC Qt seems to prefer nmake, and in fact doesn't
+            # support stuff build with regular VS (see
+            # https://github.com/vlc-qt/vlc-qt/issues/193 )
+            self.output.info('Using NMake Generator')
+            cmake.generator='NMake Makefiles'
+
         if len(env.keys()):
             s = '\nAdditional Environment:\n'
             for k,v in env.items():
@@ -89,10 +96,14 @@ class VlcqtConan(ConanFile):
             s += ' - %s=%s\n'%(k, v)
         self.output.info(s)
 
-        cmake.configure()
-
         with tools.environment_append(env):
-            cmake.build()
+            if 'Windows' == self.settings.os and 'Visual Studio' == self.settings.compiler:
+                with tools.vcvars(self.settings, filter_known_paths=False):
+                    cmake.configure()
+                    cmake.build()
+            else:
+                cmake.configure()
+                cmake.build()
 
     def package(self):
         cmake = CMake(self)
