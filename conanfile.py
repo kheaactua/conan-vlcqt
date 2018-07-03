@@ -7,6 +7,11 @@ from conans import ConanFile, CMake, tools
 
 
 class VlcqtConan(ConanFile):
+    """
+    Note: The static build (on Windows) seems to fail when building the tests,
+    as Qt is built into vlccore.lib, and the test libs
+    """
+
     name            = 'vlcqt'
     version         = '1.1.1'
     license         = ''
@@ -14,7 +19,7 @@ class VlcqtConan(ConanFile):
     description     = 'Build VLC Qt'
     settings        = 'os', 'compiler', 'build_type', 'arch'
     options         = {'shared': [True, False]}
-    default_options = 'shared= False'
+    default_options = 'shared=True'
     generators      = 'cmake'
     exports         = '*.patch'
 
@@ -39,17 +44,21 @@ class VlcqtConan(ConanFile):
             # Issue linking to VlcQmlPlayer.  See https://github.com/vlc-qt/vlc-qt/issues/173
             tools.replace_in_file(
                 file_path=os.path.join('src', 'qml', 'QmlPlayer.h'),
-                search='class VlcQmlPlayer',
-                replace='class VLCQT_QML_EXPORT VlcQmlPlayer'
+                search ='class VlcQmlPlayer :',
+                replace='class VLCQT_QML_EXPORT VlcQmlPlayer :',
+                strict=True
             )
 
-    def build(self):
+    def _set_up_cmake(self):
         # Import from helpers/x@ntc/stable
         from platform_helpers import adjustPath
 
+        # Environment to perhaps populate
         env = {}
+
         cmake = CMake(self)
 
+        cmake.definitions['CMAKE_BUILD_TYPE'] = self.settings.build_type
         cmake.definitions['STATIC'] = 'FALSE' if self.options.shared else 'TRUE'
 
         qt_deps = ['Core', 'Quick', 'Widgets', 'QuickTest']
@@ -90,15 +99,21 @@ class VlcqtConan(ConanFile):
             self.output.info('Using NMake Generator')
             cmake.generator='NMake Makefiles'
 
+        s = '\nCMake Definitions:\n'
+        for k,v in cmake.definitions.items():
+            s += ' - %s=%s\n'%(k, v)
+        self.output.info(s)
+
+        return cmake, env
+
+    def build(self):
+        cmake, env = self._set_up_cmake()
+
         if len(env.keys()):
             s = '\nAdditional Environment:\n'
             for k,v in env.items():
                 s += ' - %s=%s\n'%(k, v)
             self.output.info(s)
-        s = '\nCMake Definitions:\n'
-        for k,v in cmake.definitions.items():
-            s += ' - %s=%s\n'%(k, v)
-        self.output.info(s)
 
         with tools.environment_append(env):
             if 'Windows' == self.settings.os and 'Visual Studio' == self.settings.compiler:
@@ -110,8 +125,12 @@ class VlcqtConan(ConanFile):
                 cmake.build()
 
     def package(self):
-        cmake = CMake(self)
-        cmake.install()
+        cmake, env = self._set_up_cmake()
+        if 'Windows' == self.settings.os and 'Visual Studio' == self.settings.compiler:
+            with tools.vcvars(self.settings, filter_known_paths=False):
+                cmake.install()
+        else:
+            cmake.install()
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
