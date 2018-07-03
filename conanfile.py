@@ -31,6 +31,14 @@ class VlcqtConan(ConanFile):
         self.run('git clone https://github.com/vlc-qt/vlc-qt.git .')
         self.run('git checkout %s'%self.version)
 
+        if 'Windows' == self.settings.os:
+            # Issue linking to VlcQmlPlayer.  See https://github.com/vlc-qt/vlc-qt/issues/173
+            tools.replace_in_file(
+                file_path=os.path.join('src', 'qml', 'QmlPlayer.h'),
+                search='class VlcQmlPlayer',
+                replace='class VLCQT_QML_EXPORT VlcQmlPlayer'
+            )
+
     def build(self):
         # Import from helpers/x@ntc/stable
         from platform_helpers import adjustPath
