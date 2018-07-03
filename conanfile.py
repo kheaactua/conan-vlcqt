@@ -34,16 +34,16 @@ class VlcqtConan(ConanFile):
             self.requires('vlc/3.0.3@ntc/stable')
 
     def source(self):
-        self.run('git clone https://github.com/vlc-qt/vlc-qt.git .')
-        self.run('git checkout %s'%self.version)
+        self.run(f'git clone https://github.com/vlc-qt/vlc-qt.git {self.name}')
+        self.run(f'cd {self.name} && git checkout {self.version}')
 
         # Fix the issue where it ignores and then destroys LIBVLC_BIN_DIR
-        tools.patch(patch_file='cache.patch')
+        tools.patch(base_path=self.name, patch_file='cache.patch')
 
         if 'Windows' == self.settings.os:
             # Issue linking to VlcQmlPlayer.  See https://github.com/vlc-qt/vlc-qt/issues/173
             tools.replace_in_file(
-                file_path=os.path.join('src', 'qml', 'QmlPlayer.h'),
+                file_path=os.path.join(self.name, 'src', 'qml', 'QmlPlayer.h'),
                 search ='class VlcQmlPlayer :',
                 replace='class VLCQT_QML_EXPORT VlcQmlPlayer :',
                 strict=True
@@ -118,10 +118,10 @@ class VlcqtConan(ConanFile):
         with tools.environment_append(env):
             if 'Windows' == self.settings.os and 'Visual Studio' == self.settings.compiler:
                 with tools.vcvars(self.settings, filter_known_paths=False):
-                    cmake.configure()
+                    cmake.configure(source_folder=self.name)
                     cmake.build()
             else:
-                cmake.configure()
+                cmake.configure(source_folder=self.name)
                 cmake.build()
 
     def package(self):
