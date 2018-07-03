@@ -48,7 +48,7 @@ class VlcqtConan(ConanFile):
 
         cmake.definitions['STATIC'] = 'FALSE' if self.options.shared else 'TRUE'
 
-        qt_deps = ['Core']
+        qt_deps = ['Core', 'Quick', 'Widgets', 'QuickTest']
         for p in qt_deps:
             cmake.definitions[f'Qt5{p}_DIR:PATH'] = adjustPath(os.path.join(self.deps_cpp_info['qt'].rootpath, 'lib', 'cmake', f'Qt5{p}'))
         cmake.definitions['QT_QMAKE_EXECUTABLE:PATH'] = adjustPath(os.path.join(self.deps_cpp_info['qt'].rootpath, 'bin', 'qmake'))
