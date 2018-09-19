@@ -33,6 +33,21 @@ class VlcqtConan(ConanFile):
         if 'Windows' == self.settings.os:
             self.requires('vlc/3.0.3@ntc/stable')
 
+    def configure(self):
+        qt_modules = (
+            'qt3d',
+            'qtbase',
+            'qtcharts',
+            'qtdatavis3d',
+            'qtquickcontrols',
+            'qtquickcontrols2',
+            'qtsvg',
+            'qtxmlpatterns',
+            'qtcanvas3d',
+        )
+
+        for m in qt_modules: setattr(self.options['qt'], m, True)
+
     def source(self):
         self.run(f'git clone https://github.com/vlc-qt/vlc-qt.git {self.name}')
         self.run(f'cd {self.name} && git checkout {self.version}')
