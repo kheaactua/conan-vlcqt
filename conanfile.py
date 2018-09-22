@@ -30,8 +30,13 @@ class VlcqtConan(ConanFile):
 
     def requirements(self):
         """ Definitely use conan vlc on Windows """
-        if 'Windows' == self.settings.os:
+        if tools.os_info.is_windows:
             self.requires('vlc/3.0.3@ntc/stable')
+        elif tools.os_info.linux_distro == "ubuntu":
+            if tools.os_info.os_version < '16':
+                self.requires('vlc/[<3]@ntc/stable')
+            # else:
+            #     self.requires('vlc/[>=3]@ntc/stable')
 
     def configure(self):
         qt_modules = (
@@ -55,7 +60,7 @@ class VlcqtConan(ConanFile):
         # Fix the issue where it ignores and then destroys LIBVLC_BIN_DIR
         tools.patch(base_path=self.name, patch_file='cache.patch')
 
-        if 'Windows' == self.settings.os:
+        if tools.os_info.is_windows:
             # Issue linking to VlcQmlPlayer.  See https://github.com/vlc-qt/vlc-qt/issues/173
             tools.replace_in_file(
                 file_path=os.path.join(self.name, 'src', 'qml', 'QmlPlayer.h'),
@@ -80,7 +85,7 @@ class VlcqtConan(ConanFile):
         for p in qt_deps:
             cmake.definitions[f'Qt5{p}_DIR:PATH'] = adjustPath(os.path.join(self.deps_cpp_info['qt'].rootpath, 'lib', 'cmake', f'Qt5{p}'))
         cmake.definitions['QT_QMAKE_EXECUTABLE:PATH'] = adjustPath(os.path.join(self.deps_cpp_info['qt'].rootpath, 'bin', 'qmake'))
-        if 'Windows' == self.settings.os:
+        if tools.os_info.is_windows:
             env['PATH'] = os.environ.get('PATH', '').split(';')
             env['PATH'].extend([adjustPath(os.path.join(self.deps_cpp_info['qt'].rootpath, p)) for p in ['bin']])
 
@@ -91,7 +96,7 @@ class VlcqtConan(ConanFile):
                 On Windows, prefer the (shared) lib<lib>.lib to the <lib>.lib
                 """
                 test_lib = 'lib' + name
-                if 'Windows' == self.settings.os:
+                if tools.os_info.is_windows:
                     test_lib = 'lib' + name + '.lib'
                 else:
                     test_lib = 'lib' + name + '.so'
@@ -102,12 +107,13 @@ class VlcqtConan(ConanFile):
                 else:
                     raise ValueError('Could not find %s base=%s libs=%s'%(name, base, ', '.join(libs)))
 
-            cmake.definitions['LIBVLC_LIBRARY:PATH']     = adjustPath(findLibInList(base=os.path.join(self.deps_cpp_info['vlc'].rootpath, self.deps_cpp_info['vlc'].libdirs[0]), libs=self.deps_cpp_info['vlc'].libs, name='vlc'))
-            cmake.definitions['LIBVLCCORE_LIBRARY:PATH'] = adjustPath(findLibInList(base=os.path.join(self.deps_cpp_info['vlc'].rootpath, self.deps_cpp_info['vlc'].libdirs[0]), libs=self.deps_cpp_info['vlc'].libs, name='vlccore'))
-            cmake.definitions['LIBVLC_INCLUDE_DIR:PATH'] = adjustPath(os.path.join(self.deps_cpp_info['vlc'].rootpath, self.deps_cpp_info['vlc'].includedirs[0]))
-            cmake.definitions['LIBVLC_BIN_DIR:PATH']     = adjustPath(os.path.join(self.deps_cpp_info['vlc'].rootpath, self.deps_cpp_info['vlc'].bindirs[0]))
+            if 'vlc' in self.deps_cpp_info.deps:
+                cmake.definitions['LIBVLC_LIBRARY:PATH']     = adjustPath(findLibInList(base=os.path.join(self.deps_cpp_info['vlc'].rootpath, self.deps_cpp_info['vlc'].libdirs[0]), libs=self.deps_cpp_info['vlc'].libs, name='vlc'))
+                cmake.definitions['LIBVLCCORE_LIBRARY:PATH'] = adjustPath(findLibInList(base=os.path.join(self.deps_cpp_info['vlc'].rootpath, self.deps_cpp_info['vlc'].libdirs[0]), libs=self.deps_cpp_info['vlc'].libs, name='vlccore'))
+                cmake.definitions['LIBVLC_INCLUDE_DIR:PATH'] = adjustPath(os.path.join(self.deps_cpp_info['vlc'].rootpath, self.deps_cpp_info['vlc'].includedirs[0]))
+                cmake.definitions['LIBVLC_BIN_DIR:PATH']     = adjustPath(os.path.join(self.deps_cpp_info['vlc'].rootpath, self.deps_cpp_info['vlc'].bindirs[0]))
 
-        if 'Windows' == self.settings.os and 'Visual Studio' == self.settings.compiler:
+        if tools.os_info.is_windows and 'Visual Studio' == self.settings.compiler:
             # The creator of VLC Qt seems to prefer nmake, and in fact doesn't
             # support stuff build with regular VS (see
             # https://github.com/vlc-qt/vlc-qt/issues/193 )
