@@ -32,6 +32,11 @@ class VlcqtConan(ConanFile):
         """ Definitely use conan vlc on Windows """
         if 'Windows' == self.settings.os:
             self.requires('vlc/3.0.3@ntc/stable')
+        if 'Linux' == self.settings.os:
+            if tools.os_info.os_version < '16':
+                self.requires('vlc/[<3]@ntc/stable')
+            else:
+                self.requires('vlc/[>=3]@ntc/stable')
 
     def configure(self):
         qt_modules = (
@@ -73,7 +78,6 @@ class VlcqtConan(ConanFile):
 
         cmake = CMake(self)
 
-        cmake.definitions['CMAKE_BUILD_TYPE'] = self.settings.build_type
         cmake.definitions['STATIC'] = 'FALSE' if self.options.shared else 'TRUE'
 
         qt_deps = ['Core', 'Quick', 'Widgets', 'QuickTest']
