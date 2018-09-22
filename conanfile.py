@@ -78,7 +78,6 @@ class VlcqtConan(ConanFile):
 
         cmake = CMake(self)
 
-        cmake.definitions['CMAKE_BUILD_TYPE'] = self.settings.build_type
         cmake.definitions['STATIC'] = 'FALSE' if self.options.shared else 'TRUE'
 
         qt_deps = ['Core', 'Quick', 'Widgets', 'QuickTest']
