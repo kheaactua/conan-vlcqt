@@ -2,7 +2,7 @@
 # -*- coding: future_fstrings -*-
 # -*- coding: utf-8 -*-
 
-import os
+import os, glob, re
 from conans import ConanFile, CMake, tools
 
 
@@ -27,6 +27,13 @@ class VlcqtConan(ConanFile):
         'helpers/[>=0.3]@ntc/stable',
         'qt/[>=5.9.0]@ntc/stable',
     )
+
+    scm = {
+        'type':      'git',
+        'subfolder': name,
+        'url':       'https://github.com/vlc-qt/vlc-qt.git',
+        'revision':  version
+    }
 
     def requirements(self):
         """ Definitely use conan vlc on Windows """
@@ -54,9 +61,6 @@ class VlcqtConan(ConanFile):
         for m in qt_modules: setattr(self.options['qt'], m, True)
 
     def source(self):
-        self.run(f'git clone https://github.com/vlc-qt/vlc-qt.git {self.name}')
-        self.run(f'cd {self.name} && git checkout {self.version}')
-
         # Fix the issue where it ignores and then destroys LIBVLC_BIN_DIR
         tools.patch(base_path=self.name, patch_file='cache.patch')
 
@@ -136,7 +140,7 @@ class VlcqtConan(ConanFile):
             self.output.info(s)
 
         with tools.environment_append(env):
-            if 'Windows' == self.settings.os and 'Visual Studio' == self.settings.compiler:
+            if tools.os_info.is_windows and 'Visual Studio' == self.settings.compiler:
                 with tools.vcvars(self.settings, filter_known_paths=False):
                     cmake.configure(source_folder=self.name)
                     cmake.build()
@@ -146,7 +150,7 @@ class VlcqtConan(ConanFile):
 
     def package(self):
         cmake, env = self._set_up_cmake()
-        if 'Windows' == self.settings.os and 'Visual Studio' == self.settings.compiler:
+        if tools.os_info.is_windows and 'Visual Studio' == self.settings.compiler:
             with tools.vcvars(self.settings, filter_known_paths=False):
                 cmake.install()
         else:
@@ -154,5 +158,21 @@ class VlcqtConan(ConanFile):
 
     def package_info(self):
         self.cpp_info.libs = tools.collect_libs(self)
+        self.env_info.CMAKE_PREFIX_PATH.append(os.path.join(self.package_folder, 'lib', 'cmake'))
+
+        # Populate the pkg-config environment variables
+        with tools.pythonpath(self):
+            from platform_helpers import adjustPath, appendPkgConfigPath
+
+            pkg_config_path = os.path.join(self.package_folder, 'lib', 'pkgconfig')
+            appendPkgConfigPath(adjustPath(pkg_config_path), self.env_info)
+
+            pc_files = glob.glob(adjustPath(os.path.join(pkg_config_path, '*.pc')))
+            for f in pc_files:
+                p_name = re.sub(r'\.pc$', '', os.path.basename(f))
+                p_name = re.sub(r'\W', '_', p_name.upper())
+                setattr(self.env_info, f'PKG_CONFIG_{p_name}_PREFIX', adjustPath(self.package_folder))
+
+            appendPkgConfigPath(adjustPath(pkg_config_path), self.env_info)
 
 # vim: ts=4 sw=4 expandtab ffs=unix ft=python foldmethod=marker :
