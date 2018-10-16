@@ -38,7 +38,7 @@ class VlcqtConan(ConanFile):
     def requirements(self):
         """ Definitely use conan vlc on Windows """
         if tools.os_info.is_windows:
-            self.requires('vlc/3.0.3@ntc/stable')
+            self.requires('vlc/[>=3.0.3]@ntc/stable')
         elif tools.os_info.linux_distro == "ubuntu":
             if tools.os_info.os_version < '16':
                 self.requires('vlc/[<3]@ntc/stable')
