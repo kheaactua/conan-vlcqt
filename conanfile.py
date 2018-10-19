@@ -35,15 +35,36 @@ class VlcqtConan(ConanFile):
         'revision':  version
     }
 
+
+    def system_requirements(self):
+        pack_names = None
+        if 'ubuntu' == tools.os_info.linux_distro:
+            if tools.os_info.os_version >= '16':
+                pack_names = ['libvlc-dev', 'libvlccore-dev']
+
+            if self.settings.arch == 'x86':
+                full_pack_names = []
+                for pack_name in pack_names:
+                    full_pack_names += [pack_name + ':i386']
+                pack_names = full_pack_names
+
+        if pack_names:
+            installer = tools.SystemPackageTool()
+            try:
+                installer.update() # Update the package database
+                installer.install(' '.join(pack_names)) # Install the package
+            except ConanException:
+                self.output.warn('Could not run system requirements installer.  Required packages might be missing.')
+
     def requirements(self):
         """ Definitely use conan vlc on Windows """
         if tools.os_info.is_windows:
             self.requires('vlc/[>=3.0.3]@ntc/stable')
-        elif tools.os_info.linux_distro == "ubuntu":
+        elif 'ubuntu' == tools.os_info.linux_distro:
             if tools.os_info.os_version < '16':
                 self.requires('vlc/[<3]@ntc/stable')
-            # else:
-            #     self.requires('vlc/[>=3]@ntc/stable')
+            else:
+                self.output.info('Relying on system VLC')
 
     def configure(self):
         qt_modules = (
