@@ -40,7 +40,7 @@ class VlcqtConan(ConanFile):
         pack_names = None
         if 'ubuntu' == tools.os_info.linux_distro:
             if tools.os_info.os_version >= '16':
-                pack_names = ['libvlc-dev', 'libvlccore-dev']
+                pack_names = ['vlc', 'libvlc-dev', 'libvlccore-dev']
 
             if self.settings.arch == 'x86':
                 full_pack_names = []
