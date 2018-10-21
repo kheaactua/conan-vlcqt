@@ -181,6 +181,12 @@ class VlcqtConan(ConanFile):
         self.cpp_info.libs = tools.collect_libs(self)
         self.env_info.CMAKE_PREFIX_PATH.append(os.path.join(self.package_folder, 'lib', 'cmake'))
 
+        if tools.os_info.is_windows:
+            # VLC-Qt appears to copy all of VLC's plugins to it's local bin
+            # directory.  This env var is required or else VLC cannot be
+            # loaded. (Though, we could likely also just point to the vlc/../bin/plugins
+            self.env_info.VLC_PLUGIN_PATH = os.path.join(self.package_folder, 'bin', 'plugins')
+
         # Populate the pkg-config environment variables
         with tools.pythonpath(self):
             from platform_helpers import adjustPath, appendPkgConfigPath
